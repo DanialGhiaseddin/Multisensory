@@ -1,0 +1,6 @@
+psychopy
+screeninfo
+pyserial
+psychtoolbox
+pyyaml
+numpy

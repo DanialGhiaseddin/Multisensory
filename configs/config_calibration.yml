@@ -1,0 +1,30 @@
+screen:
+    size: full-screen # full-screen, [1920, 1080]
+
+serial:
+    port: '/dev/ttyACM0'
+    baud_rate: 115200
+    timeout: 2
+
+audio:
+    freq: 'C'
+    duration: 0.040
+
+experiment:
+
+    name: 'multi-sensory-calibration'
+
+    nback:
+        enable: False
+        instruction: False
+
+    multi-sensory:
+        enable: True
+        instruction: False
+
+    arduino_enable: True
+    roa_list: [-10, 0, -20] #[-300, -200, -100, -50, -20, -10, 0, 10, 20, 50, 100, 200, 300]
+    trials: 5
+    fixation_time: 2.0
+    isi_time: 1.0
+
