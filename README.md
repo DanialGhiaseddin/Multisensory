@@ -12,3 +12,8 @@ download wheel form ```https://extras.wxpython.org/wxPython4/extras/linux/gtk3/`
 `pip install -r requirements.txt`
 
 For template please use the provided template.py in the repository.
+
+Installation using conda:
+create virtual environment using conda and python 3.8
+`conda install -c conda-forge psychopy`
+
