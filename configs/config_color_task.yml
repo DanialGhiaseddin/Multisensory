@@ -1,0 +1,7 @@
+screen:
+  size: full-screen # full-screen, [1920, 1080]
+
+
+experiment:
+  name: 'color-discrimination'
+

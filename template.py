@@ -1,4 +1,12 @@
-from psychopy import visual, core, event, data, logging, gui
+from psychopy import visual, core, data, logging, gui
+# import pyschopy.event as event
+import psychopy.event
+
+# Create a dialog box to collect participant information
+info = {'Subject ID': '', 'Age': '', 'Gender': ['Male', 'Female', 'Other']}
+dlg = gui.DlgFromDict(dictionary=info, title='Experiment Information')
+if not dlg.OK:
+    core.quit()  # User pressed cancel, so exit
 
 # Setup the Window
 win = visual.Window(size=(800, 600), color=(0, 0, 0), units="pix")
@@ -17,7 +25,8 @@ trial_clock = core.Clock()
 # Experiment flow
 instruction_text.draw()
 win.flip()
-event.waitKeys()  # Wait for key press
+print("Im here")
+pressed_keys = psychopy.event.waitKeys(keyList=["space"])  # Wait for key press
 
 for trial in trials:
     stimulus.setText(trial['text'])  # Set the condition-specific text
