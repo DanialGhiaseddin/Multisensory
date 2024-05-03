@@ -15,5 +15,5 @@ For template please use the provided template.py in the repository.
 
 Installation using conda:
 create virtual environment using conda and python 3.8
-`conda install -c conda-forge psychopy`
+`conda install conda-forge::psychopy`
 

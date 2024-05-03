@@ -31,6 +31,7 @@ __pycache__/
 .Python
 .idea/
 env/
+data/
 build/
 develop-eggs/
 dist/
