@@ -154,10 +154,14 @@ class ColorTask:
             core.wait(self.fixation_delay)  # Present the stimulus for 2 seconds
 
             self.stimulus.draw(trial['colors'])
+            self.fixation.draw()
             self.win.flip()
             core.wait(self.stimulus_duration)  # Present the stimulus for 2 seconds
 
+            # Get Response
+
             while not event.getKeys(keyList=["space", "escape"]):
+                self.fixation.draw()
                 self.color_bar.draw()
                 self.win.flip()
 
