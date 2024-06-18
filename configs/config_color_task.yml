@@ -1,8 +1,12 @@
 screen:
-  size: [960, 540] # full-screen # full-screen, [1920, 1080]
-
+#  size: [960, 540] # full-screen # full-screen, [1920, 1080]
+  size: full-screen #, [1920, 1080]
 
 experiment:
   name: 'color-discrimination'
   trials: 5
+  fixation_wait_time: 2.0
+  stimulus_duration: 0.5
+  response_timeout: 5
+
 
