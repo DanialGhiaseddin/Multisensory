@@ -21,8 +21,8 @@ experiment:
   name: 'color-discrimination'
   n_blocks: 5
   n_trials: 2
-  fixation_wait_time: 2.0
-  stimulus_duration: 0.5
+  fixation_wait_time: 0.5
+  stimulus_duration: 0.3
   response_timeout: 5
   fixation_size: 0.05
 

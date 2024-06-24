@@ -209,7 +209,7 @@ class ColorTask:
 
             if self.slider_pos is not None:
                 # Map the slider position to a color in the spectrum
-                color_value = self.slider_pos / self.num_colors # This will be a value between 0 and 1
+                color_value = self.slider_pos / self.num_colors  # This will be a value between 0 and 1
                 if self.feedback_started:
 
                     color = mpl_colors.hsv_to_rgb([color_value, self.saturation, self.value])  # Convert HSV to RGB
@@ -252,27 +252,29 @@ class ColorTask:
             self.feedback.lineColor = 'white'
             self.feedback_started = False
 
-        def get_feedback_color(self, position):
+        def get_feedback_color(self, position, timeout=5):
 
             mouse = event.Mouse(win=self.win)
 
             self.feedback_object.pos = position
 
-            while True:
+            response_clock = core.Clock()
+            timeout_clock = core.Clock()
+
+            while timeout_clock.getTime() < timeout:
                 self.draw()
                 self.win.flip()
 
                 keys = event.getKeys()
                 if 'escape' in keys:
                     break
-
                 if 'left' in keys:
                     self.incremental_update_slider(1)
                 if 'right' in keys:
                     self.incremental_update_slider(-1)
-
                 if 'space' in keys:
-                    return self.feedback.fillColor
+                    response_time = response_clock.getTime()
+                    return self.feedback.fillColor, response_time
 
                 # Update the slider position if the left mouse button is pressed
                 if mouse.getPressed()[0]:  # Left mouse button is pressed
@@ -281,6 +283,8 @@ class ColorTask:
 
                 # Small delay to prevent overloading the CPU
                 core.wait(0.01)
+
+            return None, None
 
     class Stimulus:
         def __init__(self, win, size=0.05, distance=0.22, saturation=1, value=1):
@@ -359,19 +363,20 @@ class ColorTask:
                 position = self.stimulus.get_position(index)
 
                 # while not event.getKeys(keyList=["space", "escape"]):
-                answer = self.color_bar.get_feedback_color(position)
-                answer = mpl_colors.rgb_to_hsv(answer)
-                # answer = [(c * 2) - 1 for c in answer]
-                # self.fixation.draw()
-                # self.color_bar.draw()
-                # self.win.flip()
+                fb_color, response_time = self.color_bar.get_feedback_color(position,
+                                                                            timeout=self.config["experiment"][
+                                                                                "response_timeout"])
+                if fb_color is not None:
+                    fb_color = mpl_colors.rgb_to_hsv(fb_color)
 
                 # Log data for the current trial
                 self.this_exp.addData('Stimulus', trial['colors'])
-                self.this_exp.addData('Stimulus Duration', 2)
-                self.this_exp.addData('Trial Start', self.trial_clock.getTime())
-                self.this_exp.addData('Feedback', answer)
                 self.this_exp.addData('Selected Position', index)
+                # self.this_exp.addData('Stimulus Duration', 2)
+                self.this_exp.addData('Trial Start', self.trial_clock.getTime())
+                self.this_exp.addData('Feedback', fb_color)
+                self.this_exp.addData('Response Time', response_time)
+
                 self.this_exp.nextEntry()
 
         # Clean up
