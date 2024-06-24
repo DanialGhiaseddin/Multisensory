@@ -54,7 +54,13 @@ class ColorTask:
 
         self.instruction_text = visual.ImageStim(
             win=self.win,
-            image="Images/color_task/instruction.png",
+            image="Images/color_task/Instruction.jpg",
+            units="pix"
+        )
+
+        self.rest_text = visual.ImageStim(
+            win=self.win,
+            image="Images/color_task/Rest.jpg",
             units="pix"
         )
 
@@ -75,6 +81,9 @@ class ColorTask:
                                       distance=self.config["stimulus"]["distance"],
                                       saturation=self.config["color_bar"]["saturation"],
                                       value=self.config["color_bar"]["value"])
+
+        self.confident_response = self.ConfidentResponse(self.win)
+
         # Setup Trial Handler
         # conditions = [{'text': 'Condition 1'}, {'text': 'Condition 2'}]
         trials = self.config["experiment"]["n_trials"] * self.n_blocks
@@ -327,10 +336,69 @@ class ColorTask:
         def get_position(self, index):
             return self.objects[index].pos
 
+    class ConfidentResponse:
+        def __init__(self, win):
+
+            self.win = win
+
+            self.instruction_text = visual.ImageStim(
+                win=self.win,
+                image="Images/color_task/Confident.jpg",
+                units="pix"
+            )
+
+            self.confidence_slider = visual.Slider(
+                win=win,
+                startValue=50,
+                size=(1, 0.05),
+                pos=(0, -0.3),
+                ticks=(0, 100),
+                granularity=1,
+                labels=["0", "100"],
+                style='rating'
+            )
+            self.current_value_text = visual.TextStim(win, text='50', pos=(0.55, -0.3), height=0.03)
+
+        def get_confidence(self, timeout=5):
+            response_clock = core.Clock()
+            timeout_clock = core.Clock()
+
+            while timeout_clock.getTime() < timeout:
+                # Draw the slider and text
+                self.instruction_text.draw()
+                self.confidence_slider.draw()
+                self.current_value_text.draw()
+                self.win.flip()
+
+                # Update the text to show the current slider value
+                current_confidence = self.confidence_slider.getRating()
+                if current_confidence is None:
+                    current_confidence = 50
+                self.current_value_text.text = f'{int(current_confidence)}'
+
+                # Check for keypress to exit
+                keys = event.getKeys()
+                if 'escape' in keys:
+                    core.quit()
+                if 'space' in keys:
+                    response_time = response_clock.getTime()
+                    return self.confidence_slider.getRating(), response_time
+
+            return None, None
+
+        def reset(self):
+            self.confidence_slider.reset()
+            self.current_value_text.text = '50'
+
     def _draw_instruction(self):
         self.instruction_text.draw()
         self.win.flip()
         event.waitKeys()
+
+    def _draw_rest(self):
+        self.rest_text.draw()
+        self.win.flip()
+        keys = event.waitKeys(keyList=['s', 'escape'])
 
     def run(self):
 
@@ -348,6 +416,7 @@ class ColorTask:
 
                 self.trial_clock.reset()  # Reset the clock at the start of each trial
                 self.color_bar.reset()
+                self.confident_response.reset()
                 self.fixation.draw()
                 self.win.flip()
                 core.wait(self.fixation_delay)  # Present the stimulus for 2 seconds
@@ -369,15 +438,22 @@ class ColorTask:
                 if fb_color is not None:
                     fb_color = mpl_colors.rgb_to_hsv(fb_color)
 
+                confidence, confidence_rt = self.confident_response.get_confidence()
+
                 # Log data for the current trial
                 self.this_exp.addData('Stimulus', trial['colors'])
                 self.this_exp.addData('Selected Position', index)
-                # self.this_exp.addData('Stimulus Duration', 2)
+
                 self.this_exp.addData('Trial Start', self.trial_clock.getTime())
                 self.this_exp.addData('Feedback', fb_color)
                 self.this_exp.addData('Response Time', response_time)
+                self.this_exp.addData('Confidence', confidence)
+                self.this_exp.addData('Confidence Response Time', confidence_rt)
 
                 self.this_exp.nextEntry()
+
+            if (block + 1) == (self.n_blocks // 2):
+                self._draw_rest()
 
         # Clean up
         self.this_exp.saveAsWideText(self.filename + '.csv')
