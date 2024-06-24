@@ -10,6 +10,8 @@ from psychopy.clock import Clock
 from psychopy.hardware import keyboard
 from pynput import keyboard
 
+from utils import generate_distant_numbers
+
 
 # Generate four random numbers between 0 and 1
 
@@ -89,7 +91,10 @@ class ColorTask:
         trials = self.config["experiment"]["n_trials"] * self.n_blocks
         conditions = []
         for i in range(trials):
-            colors = [random.random() for _ in range(3)]
+            if self.config["experiment"]["distinct_color"]:
+                colors = generate_distant_numbers(3, self.config["experiment"]["distinct_color_dist"])
+            else:
+                colors = [random.random() for _ in range(3)]
             print(colors)
             conditions.append({'colors': colors})
 
@@ -106,6 +111,8 @@ class ColorTask:
         self.fixation_delay = self.config["experiment"]["fixation_wait_time"]
         self.stimulus_duration = self.config["experiment"]["stimulus_duration"]
         self.response_timeout = self.config["experiment"]["response_timeout"]
+
+
 
     def _read_and_refine_config(self, config_path="configs/config_base.yml"):
         with open(config_path, "r") as yml_file:
@@ -349,15 +356,15 @@ class ColorTask:
 
             self.confidence_slider = visual.Slider(
                 win=win,
-                startValue=50,
+                startValue=1,
                 size=(1, 0.05),
                 pos=(0, -0.3),
-                ticks=(0, 100),
+                ticks=(0, 1, 2, 3, 4, 5),
                 granularity=1,
-                labels=["0", "100"],
+                labels=["0", "1", "2", "3", "4", "5"],
                 style='rating'
             )
-            self.current_value_text = visual.TextStim(win, text='50', pos=(0.55, -0.3), height=0.03)
+            self.current_value_text = visual.TextStim(win, text='1', pos=(0.55, -0.3), height=0.03)
 
         def get_confidence(self, timeout=5):
             response_clock = core.Clock()
@@ -373,7 +380,7 @@ class ColorTask:
                 # Update the text to show the current slider value
                 current_confidence = self.confidence_slider.getRating()
                 if current_confidence is None:
-                    current_confidence = 50
+                    current_confidence = 1
                 self.current_value_text.text = f'{int(current_confidence)}'
 
                 # Check for keypress to exit
@@ -438,7 +445,8 @@ class ColorTask:
                 if fb_color is not None:
                     fb_color = mpl_colors.rgb_to_hsv(fb_color)
 
-                confidence, confidence_rt = self.confident_response.get_confidence()
+                confidence, confidence_rt = self.confident_response.get_confidence(timeout=self.config["experiment"][
+                                                                                "response_timeout"])
 
                 # Log data for the current trial
                 self.this_exp.addData('Stimulus', trial['colors'])

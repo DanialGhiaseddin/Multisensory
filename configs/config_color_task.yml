@@ -7,8 +7,8 @@ color_bar:
   slider_radius: 0.01
   number_of_colors: 800
   colorful: True
-  saturation: 0.1
-  value: 0.1
+  saturation: 1
+  value: 1
 
 stimulus:
   size: 0.05
@@ -19,11 +19,13 @@ stimulus:
 
 experiment:
   name: 'color-discrimination'
+  distinct_color: True
+  distinct_color_dist: 0.1
   n_blocks: 5
   n_trials: 2
   fixation_wait_time: 0.5
   stimulus_duration: 0.3
-  response_timeout: 5
+  response_timeout: 50
   fixation_size: 0.05
 
 
