@@ -2,11 +2,28 @@ screen:
 #  size: [960, 540] # full-screen # full-screen, [1920, 1080]
   size: full-screen #, [1920, 1080]
 
+color_bar:
+  radius: 0.4
+  slider_radius: 0.01
+  number_of_colors: 800
+  colorful: True
+  saturation: 0.1
+  value: 0.1
+
+stimulus:
+  size: 0.05
+  distance: 0.2
+  count: 3
+
+
+
 experiment:
   name: 'color-discrimination'
-  trials: 5
+  n_blocks: 5
+  n_trials: 2
   fixation_wait_time: 2.0
   stimulus_duration: 0.5
   response_timeout: 5
+  fixation_size: 0.05
 
 
