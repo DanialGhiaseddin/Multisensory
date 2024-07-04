@@ -17,3 +17,16 @@ def generate_distant_numbers(length, min_distance):
             numbers.append(new_number)
     return numbers
 
+
+def generate_fixed_distant_numbers(length):
+    numbers = []
+
+    colors_distance = random.choice([120, 45])
+    first_color = random.random()
+    numbers.append(first_color)
+    color_angle = first_color * 360
+
+    while len(numbers) < length:
+        color_angle = (color_angle + colors_distance) % 360
+        numbers.append(color_angle / 360)
+    return numbers

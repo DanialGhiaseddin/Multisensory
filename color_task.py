@@ -10,7 +10,7 @@ from psychopy.clock import Clock
 from psychopy.hardware import keyboard
 from pynput import keyboard
 
-from utils import generate_distant_numbers
+from utils import generate_distant_numbers, generate_fixed_distant_numbers
 
 
 # Generate four random numbers between 0 and 1
@@ -92,7 +92,7 @@ class ColorTask:
         conditions = []
         for i in range(trials):
             if self.config["experiment"]["distinct_color"]:
-                colors = generate_distant_numbers(3, self.config["experiment"]["distinct_color_dist"])
+                colors = generate_fixed_distant_numbers(3)
             else:
                 colors = [random.random() for _ in range(3)]
             print(colors)
@@ -111,8 +111,6 @@ class ColorTask:
         self.fixation_delay = self.config["experiment"]["fixation_wait_time"]
         self.stimulus_duration = self.config["experiment"]["stimulus_duration"]
         self.response_timeout = self.config["experiment"]["response_timeout"]
-
-
 
     def _read_and_refine_config(self, config_path="configs/config_base.yml"):
         with open(config_path, "r") as yml_file:
@@ -319,6 +317,7 @@ class ColorTask:
 
             # Define the positions for the rectangles
             # Calculate positions for an equilateral triangle centered at (0, 0)
+            self.distance = distance
             angle_offset = np.pi  # Start with one rectangle at the top
             positions = []
             for i in range(3):
@@ -331,13 +330,21 @@ class ColorTask:
                 self.objects.append(
                     visual.Rect(self.win, width=size, height=size, fillColor='white', lineColor='white', pos=pos))
 
-        def draw(self, colors):
+        def draw(self, colors, angle_offset=0.0):
+
+            positions = []
+            for i in range(3):
+                angle = angle_offset + (i * 2 * np.pi / 3)  # 120 degrees apart
+                x = self.distance * np.cos(angle)
+                y = self.distance * np.sin(angle)
+                positions.append((x, y))
 
             for i in range(len(self.objects)):
                 color = mpl_colors.hsv_to_rgb([colors[i], self.saturation, self.value])
                 color = [(c * 2) - 1 for c in color]
                 self.objects[i].fillColor = color
                 self.objects[i].lineColor = color
+                self.objects[i].pos = positions[i]
                 self.objects[i].draw(win=self.win)
 
         def get_position(self, index):
@@ -410,6 +417,9 @@ class ColorTask:
     def run(self):
 
         self._draw_instruction()
+
+        easy_hard_balance = self.config['experiment']['easy_hard_balance']
+
         for block in range(self.n_blocks):
 
             self.blocks[block].draw()
@@ -428,10 +438,22 @@ class ColorTask:
                 self.win.flip()
                 core.wait(self.fixation_delay)  # Present the stimulus for 2 seconds
 
-                self.stimulus.draw(trial['colors'])
+                angle_offset = np.random.uniform(np.pi, 5*np.pi/3)
+
+                self.stimulus.draw(trial['colors'], angle_offset=angle_offset)
                 self.fixation.draw()
                 self.win.flip()
-                core.wait(self.stimulus_duration)  # Present the stimulus for 2 seconds
+
+                difficulty_condition = \
+                    random.choices(['Easy', 'Difficult'],
+                                   weights=[easy_hard_balance, 1 - easy_hard_balance],
+                                   k=1)[0]
+
+                if difficulty_condition == 'Easy':
+                    core.wait(self.stimulus_duration * 5)  # Present the stimulus for 2 seconds
+
+                else:
+                    core.wait(self.stimulus_duration)
 
                 # Get Response
                 # TODO: Start Here
@@ -443,10 +465,11 @@ class ColorTask:
                                                                             timeout=self.config["experiment"][
                                                                                 "response_timeout"])
                 if fb_color is not None:
+                    fb_color = [(c + 1) / 2 for c in fb_color]
                     fb_color = mpl_colors.rgb_to_hsv(fb_color)
 
                 confidence, confidence_rt = self.confident_response.get_confidence(timeout=self.config["experiment"][
-                                                                                "response_timeout"])
+                    "response_timeout"])
 
                 # Log data for the current trial
                 self.this_exp.addData('Stimulus', trial['colors'])
@@ -457,7 +480,8 @@ class ColorTask:
                 self.this_exp.addData('Response Time', response_time)
                 self.this_exp.addData('Confidence', confidence)
                 self.this_exp.addData('Confidence Response Time', confidence_rt)
-
+                self.this_exp.addData('Difficulty', difficulty_condition)
+                self.this_exp.addData('Angle Offset', angle_offset)
                 self.this_exp.nextEntry()
 
             if (block + 1) == (self.n_blocks // 2):

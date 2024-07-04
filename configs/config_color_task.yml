@@ -21,10 +21,11 @@ experiment:
   name: 'color-discrimination'
   distinct_color: True
   distinct_color_dist: 0.1
+  easy_hard_balance: 0.5
   n_blocks: 5
   n_trials: 2
   fixation_wait_time: 0.5
-  stimulus_duration: 0.3
+  stimulus_duration: 1
   response_timeout: 50
   fixation_size: 0.05
 
