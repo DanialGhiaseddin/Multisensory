@@ -92,9 +92,9 @@ class ColorTask:
         conditions = []
         for i in range(trials):
             if self.config["experiment"]["distinct_color"]:
-                colors = generate_fixed_distant_numbers(3)
+                colors = generate_fixed_distant_numbers(4)
             else:
-                colors = [random.random() for _ in range(3)]
+                colors = [random.random() for _ in range(4)]
             print(colors)
             conditions.append({'colors': colors})
 
@@ -110,6 +110,7 @@ class ColorTask:
         # Timings
         self.fixation_delay = self.config["experiment"]["fixation_wait_time"]
         self.stimulus_duration = self.config["experiment"]["stimulus_duration"]
+        self.wm_duration = self.config["experiment"]["wm_duration_base"]
         self.response_timeout = self.config["experiment"]["response_timeout"]
 
     def _read_and_refine_config(self, config_path="configs/config_base.yml"):
@@ -195,6 +196,9 @@ class ColorTask:
                                                lineColor=[0, 0, 0])
 
             theta = np.linspace(0, 2 * np.pi, number_of_colors)
+
+            # angle_offset = np.random.uniform(0, 2 * np.pi)
+
             for i in range(number_of_colors):
                 if is_colorful:
                     color = mpl_colors.hsv_to_rgb([i / number_of_colors, self.saturation, self.value])  #
@@ -216,18 +220,25 @@ class ColorTask:
             self.slider_pos = 0
             self.feedback_started = False
 
-        def draw(self):
+        def draw(self, angle_offset=0.0):
             # Draw the gradient bar
-            for circle in self.gradient_bar:
+            theta = np.linspace(angle_offset, (2 * np.pi) + angle_offset, self.num_colors)
+            for index, circle in enumerate(self.gradient_bar):
+                x = self.pos[0] + self.radius * np.cos(theta[index])
+                y = self.pos[1] + self.radius * np.sin(theta[index])
+                circle.pos = (x, y)
                 circle.draw(win=self.win)
 
             if self.slider_pos is not None:
                 # Map the slider position to a color in the spectrum
-                color_value = self.slider_pos / self.num_colors  # This will be a value between 0 and 1
+                # color_value = self.slider_pos / self.num_colors  # This will be a value between 0 and 1
+                corrected_pos = (((self.slider_pos / self.num_colors) * 2 * np.pi) - angle_offset) / (
+                            2 * np.pi) * self.num_colors
+                color_value = self.gradient_bar[int(corrected_pos)].fillColor
                 if self.feedback_started:
-
-                    color = mpl_colors.hsv_to_rgb([color_value, self.saturation, self.value])  # Convert HSV to RGB
-                    color = [(c * 2) - 1 for c in color]
+                    color = color_value
+                    # color = mpl_colors.hsv_to_rgb([color_value, self.saturation, self.value])  # Convert HSV to RGB
+                    # color = [(c * 2) - 1 for c in color]
                 else:
                     color = [0.3, 0.3, 0.3]
                 # Update the feedback color
@@ -237,7 +248,7 @@ class ColorTask:
                 self.feedback_object.lineColor = color
 
                 # Update feedback position
-                theta = 2 * np.pi * color_value
+                theta = 2 * np.pi * (self.slider_pos / self.num_colors)
                 self.feedback.pos = (self.pos[0] + self.radius * np.cos(theta),
                                      self.pos[1] + self.radius * np.sin(theta))
 
@@ -266,7 +277,7 @@ class ColorTask:
             self.feedback.lineColor = 'white'
             self.feedback_started = False
 
-        def get_feedback_color(self, position, timeout=5):
+        def get_feedback_color(self, position, angle_offset, timeout=5):
 
             mouse = event.Mouse(win=self.win)
 
@@ -276,7 +287,7 @@ class ColorTask:
             timeout_clock = core.Clock()
 
             while timeout_clock.getTime() < timeout:
-                self.draw()
+                self.draw(angle_offset=angle_offset)
                 self.win.flip()
 
                 keys = event.getKeys()
@@ -309,7 +320,7 @@ class ColorTask:
             self.objects = []
 
             # # distances = [[-distance, -distance], [-distance, distance], [distance, -distance], [distance, distance]]
-            # positions = [(-distance, -distance), (-distance, distance), (distance, -distance), (distance, distance)]
+            positions = [(-distance, -distance), (-distance, distance), (distance, -distance), (distance, distance)]
             # for i in range(4):
             #     self.circles.append(visual.Circle(self.win, radius=radius, fillColor='white', lineColor='white',
             #                                       pos=positions[i]))
@@ -317,14 +328,14 @@ class ColorTask:
 
             # Define the positions for the rectangles
             # Calculate positions for an equilateral triangle centered at (0, 0)
-            self.distance = distance
-            angle_offset = np.pi  # Start with one rectangle at the top
-            positions = []
-            for i in range(3):
-                angle = angle_offset + (i * 2 * np.pi / 3)  # 120 degrees apart
-                x = distance * np.cos(angle)
-                y = distance * np.sin(angle)
-                positions.append((x, y))
+            # self.distance = distance
+            # angle_offset = np.pi  # Start with one rectangle at the top
+            # positions = []
+            # for i in range(3):
+            #     angle = angle_offset + (i * 2 * np.pi / 3)  # 120 degrees apart
+            #     x = distance * np.cos(angle)
+            #     y = distance * np.sin(angle)
+            #     positions.append((x, y))
 
             for pos in positions:
                 self.objects.append(
@@ -332,19 +343,19 @@ class ColorTask:
 
         def draw(self, colors, angle_offset=0.0):
 
-            positions = []
-            for i in range(3):
-                angle = angle_offset + (i * 2 * np.pi / 3)  # 120 degrees apart
-                x = self.distance * np.cos(angle)
-                y = self.distance * np.sin(angle)
-                positions.append((x, y))
+            # positions = []
+            # for i in range(3):
+            #     angle = angle_offset + (i * 2 * np.pi / 3)  # 120 degrees apart
+            #     x = self.distance * np.cos(angle)
+            #     y = self.distance * np.sin(angle)
+            #     positions.append((x, y))
 
             for i in range(len(self.objects)):
                 color = mpl_colors.hsv_to_rgb([colors[i], self.saturation, self.value])
                 color = [(c * 2) - 1 for c in color]
                 self.objects[i].fillColor = color
                 self.objects[i].lineColor = color
-                self.objects[i].pos = positions[i]
+                # self.objects[i].pos = positions[i]
                 self.objects[i].draw(win=self.win)
 
         def get_position(self, index):
@@ -420,6 +431,8 @@ class ColorTask:
 
         easy_hard_balance = self.config['experiment']['easy_hard_balance']
 
+        # TODO Introduction to the task
+
         for block in range(self.n_blocks):
 
             self.blocks[block].draw()
@@ -438,30 +451,32 @@ class ColorTask:
                 self.win.flip()
                 core.wait(self.fixation_delay)  # Present the stimulus for 2 seconds
 
-                angle_offset = np.random.uniform(np.pi, 5*np.pi/3)
-
-                self.stimulus.draw(trial['colors'], angle_offset=angle_offset)
+                self.stimulus.draw(trial['colors'], angle_offset=0.0)
                 self.fixation.draw()
                 self.win.flip()
+
+                core.wait(self.stimulus_duration)
 
                 difficulty_condition = \
                     random.choices(['Easy', 'Difficult'],
                                    weights=[easy_hard_balance, 1 - easy_hard_balance],
                                    k=1)[0]
 
+                self.fixation.draw()
+                self.win.flip()
                 if difficulty_condition == 'Easy':
-                    core.wait(self.stimulus_duration * 5)  # Present the stimulus for 2 seconds
+                    core.wait(self.wm_duration)  # Present the stimulus for 2 seconds
 
                 else:
-                    core.wait(self.stimulus_duration)
+                    core.wait(self.wm_duration * 5)
 
-                # Get Response
-                # TODO: Start Here
-                index = random.randint(0, 2)
+                index = random.randint(0, 3)
                 position = self.stimulus.get_position(index)
 
                 # while not event.getKeys(keyList=["space", "escape"]):
+                angle_offset = np.random.uniform(0, 2 * np.pi)
                 fb_color, response_time = self.color_bar.get_feedback_color(position,
+                                                                            angle_offset,
                                                                             timeout=self.config["experiment"][
                                                                                 "response_timeout"])
                 if fb_color is not None:

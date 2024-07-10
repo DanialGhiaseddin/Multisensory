@@ -12,7 +12,7 @@ color_bar:
 
 stimulus:
   size: 0.05
-  distance: 0.2
+  distance: 0.15
   count: 3
 
 
@@ -25,7 +25,9 @@ experiment:
   n_blocks: 5
   n_trials: 2
   fixation_wait_time: 0.5
-  stimulus_duration: 1
+  stimulus_duration: 0.05
+  wm_duration_base: 0.5
+
   response_timeout: 50
   fixation_size: 0.05
 
