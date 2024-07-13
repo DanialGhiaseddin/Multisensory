@@ -10,7 +10,7 @@ from psychopy.clock import Clock
 from psychopy.hardware import keyboard
 from pynput import keyboard
 
-from utils import generate_distant_numbers, generate_fixed_distant_numbers
+from utils import generate_distant_numbers, generate_fixed_distant_numbers, generate_stimulus_trial_two_rectangles
 
 
 # Generate four random numbers between 0 and 1
@@ -90,13 +90,22 @@ class ColorTask:
         # conditions = [{'text': 'Condition 1'}, {'text': 'Condition 2'}]
         trials = self.config["experiment"]["n_trials"] * self.n_blocks
         conditions = []
+
+        self.number_of_rectangles = 2
+        easy_hard_balance = self.config["experiment"]["easy_hard_balance"]
         for i in range(trials):
-            if self.config["experiment"]["distinct_color"]:
-                colors = generate_fixed_distant_numbers(4)
+            if self.config["experiment"]["fixed_dist_distractor"]:
+                colors, selected_index = generate_stimulus_trial_two_rectangles(self.number_of_rectangles)
             else:
-                colors = [random.random() for _ in range(4)]
-            print(colors)
-            conditions.append({'colors': colors})
+                colors = [random.random() for _ in range(self.number_of_rectangles)]
+                selected_index = random.randint(0, self.number_of_rectangles - 1)
+            conditions.append(
+                {'colors': colors, 'selected_index': selected_index, 'difficulty': random.choices(['Easy', 'Difficult'],
+                                                                                                  weights=[
+                                                                                                      easy_hard_balance,
+                                                                                                      1 - easy_hard_balance],
+                                                                                                  k=1)[0],
+                 'angle_offset': np.random.uniform(0, 2 * np.pi)})
 
         self.trials = data.TrialHandler(trialList=conditions, nReps=1, method='random')
 
@@ -233,7 +242,7 @@ class ColorTask:
                 # Map the slider position to a color in the spectrum
                 # color_value = self.slider_pos / self.num_colors  # This will be a value between 0 and 1
                 corrected_pos = (((self.slider_pos / self.num_colors) * 2 * np.pi) - angle_offset) / (
-                            2 * np.pi) * self.num_colors
+                        2 * np.pi) * self.num_colors
                 color_value = self.gradient_bar[int(corrected_pos)].fillColor
                 if self.feedback_started:
                     color = color_value
@@ -320,7 +329,8 @@ class ColorTask:
             self.objects = []
 
             # # distances = [[-distance, -distance], [-distance, distance], [distance, -distance], [distance, distance]]
-            positions = [(-distance, -distance), (-distance, distance), (distance, -distance), (distance, distance)]
+            # positions = [(-distance, -distance), (-distance, distance), (distance, -distance), (distance, distance)]
+            positions = [(distance, 0), (-distance, 0)]
             # for i in range(4):
             #     self.circles.append(visual.Circle(self.win, radius=radius, fillColor='white', lineColor='white',
             #                                       pos=positions[i]))
@@ -457,10 +467,7 @@ class ColorTask:
 
                 core.wait(self.stimulus_duration)
 
-                difficulty_condition = \
-                    random.choices(['Easy', 'Difficult'],
-                                   weights=[easy_hard_balance, 1 - easy_hard_balance],
-                                   k=1)[0]
+                difficulty_condition = trial['difficulty']
 
                 self.fixation.draw()
                 self.win.flip()
@@ -470,11 +477,13 @@ class ColorTask:
                 else:
                     core.wait(self.wm_duration * 5)
 
-                index = random.randint(0, 3)
+                # index = random.randint(0, self.number_of_rectangles - 1)
+                index = trial['selected_index']
                 position = self.stimulus.get_position(index)
 
                 # while not event.getKeys(keyList=["space", "escape"]):
-                angle_offset = np.random.uniform(0, 2 * np.pi)
+                # angle_offset = np.random.uniform(0, 2 * np.pi)
+                angle_offset = trial['angle_offset']
                 fb_color, response_time = self.color_bar.get_feedback_color(position,
                                                                             angle_offset,
                                                                             timeout=self.config["experiment"][
@@ -489,22 +498,21 @@ class ColorTask:
                 # Log data for the current trial
                 self.this_exp.addData('Stimulus', trial['colors'])
                 self.this_exp.addData('Selected Position', index)
-
+                self.this_exp.addData('Angle_offset', angle_offset)
                 self.this_exp.addData('Trial Start', self.trial_clock.getTime())
                 self.this_exp.addData('Feedback', fb_color)
                 self.this_exp.addData('Response Time', response_time)
                 self.this_exp.addData('Confidence', confidence)
                 self.this_exp.addData('Confidence Response Time', confidence_rt)
                 self.this_exp.addData('Difficulty', difficulty_condition)
-                self.this_exp.addData('Angle Offset', angle_offset)
                 self.this_exp.nextEntry()
 
             if (block + 1) == (self.n_blocks // 2):
                 self._draw_rest()
 
         # Clean up
-        self.this_exp.saveAsWideText(self.filename + '.csv')
-        self.this_exp.saveAsPickle(self.filename)
+        # self.this_exp.saveAsWideText(self.filename + '.csv')
+        # self.this_exp.saveAsPickle(self.filename)
         self.win.close()
         core.quit()
 

@@ -18,6 +18,20 @@ def generate_distant_numbers(length, min_distance):
     return numbers
 
 
+def generate_stimulus_trial_two_rectangles(number_of_rectangles):
+    assert number_of_rectangles == 2, "This function only works for two rectangles"
+
+    selected_index = random.randint(0, number_of_rectangles - 1)
+    colors = [0, 0]
+
+    colors[selected_index] = random.random()
+    colors[1 - selected_index] = colors[selected_index] + random.choice([0.33, 0.25, 0.16])
+    if colors[1 - selected_index] > 1:
+        colors[1 - selected_index] -= 1
+
+    return colors, selected_index
+
+
 def generate_fixed_distant_numbers(length):
     numbers = []
 

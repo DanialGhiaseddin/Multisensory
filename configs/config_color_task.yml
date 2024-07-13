@@ -19,7 +19,7 @@ stimulus:
 
 experiment:
   name: 'color-discrimination'
-  distinct_color: True
+  fixed_dist_distractor: True
   distinct_color_dist: 0.1
   easy_hard_balance: 0.5
   n_blocks: 5
