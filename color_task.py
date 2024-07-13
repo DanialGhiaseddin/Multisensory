@@ -119,7 +119,9 @@ class ColorTask:
         # Timings
         self.fixation_delay = self.config["experiment"]["fixation_wait_time"]
         self.stimulus_duration = self.config["experiment"]["stimulus_duration"]
-        self.wm_duration = self.config["experiment"]["wm_duration_base"]
+        self.mask_duration = self.config["experiment"]["mask_duration"]
+        self.wm_duration_easy = self.config["experiment"]["wm_duration_easy"]
+        self.wm_duration_hard = self.config["experiment"]["wm_duration_hard"]
         self.response_timeout = self.config["experiment"]["response_timeout"]
 
     def _read_and_refine_config(self, config_path="configs/config_base.yml"):
@@ -325,12 +327,14 @@ class ColorTask:
             self.win = win
             self.saturation = saturation
             self.value = value
+            self.size = size
+            self.distance = distance
             # Create a feedback stimulus (e.g., a circle)
             self.objects = []
 
             # # distances = [[-distance, -distance], [-distance, distance], [distance, -distance], [distance, distance]]
             # positions = [(-distance, -distance), (-distance, distance), (distance, -distance), (distance, distance)]
-            positions = [(distance, 0), (-distance, 0)]
+            self.positions = [(distance, 0), (-distance, 0)]
             # for i in range(4):
             #     self.circles.append(visual.Circle(self.win, radius=radius, fillColor='white', lineColor='white',
             #                                       pos=positions[i]))
@@ -347,7 +351,7 @@ class ColorTask:
             #     y = distance * np.sin(angle)
             #     positions.append((x, y))
 
-            for pos in positions:
+            for pos in self.positions:
                 self.objects.append(
                     visual.Rect(self.win, width=size, height=size, fillColor='white', lineColor='white', pos=pos))
 
@@ -370,6 +374,23 @@ class ColorTask:
 
         def get_position(self, index):
             return self.objects[index].pos
+
+        def draw_mask(self):
+            # Generate Gaussian noise
+            for pos in self.positions:
+                mean = 0.5  # mean of the Gaussian noise
+                std = 0.1  # standard deviation of the Gaussian noise
+
+                pixel_size = int(self.size * self.win.size[0] / 2)
+
+                noise = np.random.normal(mean, std, (pixel_size, pixel_size, 3))  # create noise in RGB format
+                noise = np.clip(noise, 0, 1)  # clip values to be between 0 and 1
+
+                # Create an ImageStim with the noise texture
+                noise_texture = visual.ImageStim(self.win, image=noise, size=(self.size, self.size), pos=pos)
+
+                # Draw the noise texture (which will appear as a rectangle with Gaussian noise)
+                noise_texture.draw()
 
     class ConfidentResponse:
         def __init__(self, win):
@@ -457,25 +478,34 @@ class ColorTask:
                 self.trial_clock.reset()  # Reset the clock at the start of each trial
                 self.color_bar.reset()
                 self.confident_response.reset()
+                # Step 1
                 self.fixation.draw()
                 self.win.flip()
                 core.wait(self.fixation_delay)  # Present the stimulus for 2 seconds
 
+                # Step2
                 self.stimulus.draw(trial['colors'], angle_offset=0.0)
                 self.fixation.draw()
                 self.win.flip()
-
                 core.wait(self.stimulus_duration)
 
-                difficulty_condition = trial['difficulty']
-
+                # Step3
+                self.stimulus.draw_mask()
                 self.fixation.draw()
                 self.win.flip()
+                core.wait(self.mask_duration)
+
+                # Step4
+                self.fixation.draw()
+                self.win.flip()
+                difficulty_condition = trial['difficulty']
                 if difficulty_condition == 'Easy':
-                    core.wait(self.wm_duration)  # Present the stimulus for 2 seconds
+                    core.wait(self.wm_duration_easy)  # Present the stimulus for 2 seconds
 
                 else:
-                    core.wait(self.wm_duration * 5)
+                    core.wait(self.wm_duration_hard)
+
+                # Step5
 
                 # index = random.randint(0, self.number_of_rectangles - 1)
                 index = trial['selected_index']
@@ -491,6 +521,8 @@ class ColorTask:
                 if fb_color is not None:
                     fb_color = [(c + 1) / 2 for c in fb_color]
                     fb_color = mpl_colors.rgb_to_hsv(fb_color)
+
+                # Step6
 
                 confidence, confidence_rt = self.confident_response.get_confidence(timeout=self.config["experiment"][
                     "response_timeout"])

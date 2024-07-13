@@ -26,7 +26,9 @@ experiment:
   n_trials: 2
   fixation_wait_time: 0.5
   stimulus_duration: 0.05
-  wm_duration_base: 0.5
+  mask_duration: 0.2
+  wm_duration_easy: 0.5
+  wm_duration_hard: 2.5
 
   response_timeout: 50
   fixation_size: 0.05
