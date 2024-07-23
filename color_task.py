@@ -565,6 +565,12 @@ class ColorTask:
                 "response_timeout"])
 
         # TODO Introduction to the task
+        end_message = visual.TextStim(win=self.win, text="End of training phase.", height=0.1, pos=(0, 0), color='black')
+        end_message.draw()
+        self.win.flip()
+        event.waitKeys(keyList=['space', 'escape'])
+
+
         response_acc = []
         for block in range(self.n_blocks):
 
