@@ -512,8 +512,8 @@ class ColorTask:
         self._draw_instruction()
 
         for dummy_index, trial in enumerate(self.dummy_trials):
-
-            self._draw_draw_training(0)
+            if dummy_index == 0:
+                self._draw_draw_training(0)
 
             self.fixation.draw()
             self.win.flip()
@@ -549,7 +549,8 @@ class ColorTask:
 
             # while not event.getKeys(keyList=["space", "escape"]):
             # angle_offset = np.random.uniform(0, 2 * np.pi)
-            self._draw_draw_training(1)
+            if dummy_index == 0:
+                self._draw_draw_training(1)
 
             angle_offset = trial['angle_offset']
             _ = self.color_bar.get_feedback_color(position,
@@ -558,8 +559,8 @@ class ColorTask:
                                                       "response_timeout"])
 
             # Step6
-
-            self._draw_draw_training(2)
+            if dummy_index == 0:
+                self._draw_draw_training(2)
             _ = self.confident_response.get_confidence(timeout=self.config["experiment"][
                 "response_timeout"])
 
