@@ -12,6 +12,8 @@ from pynput import keyboard
 
 from utils import generate_distant_numbers, generate_fixed_distant_numbers, generate_stimulus_trial_two_rectangles
 
+from utils import hue_to_degrees, round_to_nearest, hue_difference_signed
+
 
 # Generate four random numbers between 0 and 1
 
@@ -66,6 +68,23 @@ class ColorTask:
             units="pix"
         )
 
+        self.training_img = []
+        self.training_img.append(visual.ImageStim(
+            win=self.win,
+            image="Images/color_task/1.jpg",
+            units="pix"
+        ))
+        self.training_img.append(visual.ImageStim(
+            win=self.win,
+            image="Images/color_task/3.jpg",
+            units="pix"
+        ))
+        self.training_img.append(visual.ImageStim(
+            win=self.win,
+            image="Images/color_task/4.jpg",
+            units="pix"
+        ))
+
         self.n_blocks = self.config["experiment"]["n_blocks"]
         assert self.n_blocks <= 5, "Number of blocks should be less than or equal to 5"
         self.blocks = []
@@ -95,16 +114,19 @@ class ColorTask:
         easy_hard_balance = self.config["experiment"]["easy_hard_balance"]
         for i in range(trials):
             if self.config["experiment"]["fixed_dist_distractor"]:
-                colors, selected_index = generate_stimulus_trial_two_rectangles(self.number_of_rectangles)
+                colors, selected_index, distractor_diff = generate_stimulus_trial_two_rectangles(
+                    self.number_of_rectangles)
             else:
                 colors = [random.random() for _ in range(self.number_of_rectangles)]
                 selected_index = random.randint(0, self.number_of_rectangles - 1)
+                distractor_diff = -1
             conditions.append(
-                {'colors': colors, 'selected_index': selected_index, 'difficulty': random.choices(['Easy', 'Difficult'],
-                                                                                                  weights=[
-                                                                                                      easy_hard_balance,
-                                                                                                      1 - easy_hard_balance],
-                                                                                                  k=1)[0],
+                {'colors': colors, 'selected_index': selected_index, 'distractor_diff': distractor_diff,
+                 'difficulty': random.choices(['Easy', 'Difficult'],
+                                              weights=[
+                                                  easy_hard_balance,
+                                                  1 - easy_hard_balance],
+                                              k=1)[0],
                  'angle_offset': np.random.uniform(0, 2 * np.pi)})
 
         self.trials = data.TrialHandler(trialList=conditions, nReps=1, method='random')
@@ -113,6 +135,27 @@ class ColorTask:
         self.trial_per_block = len(conditions) // self.n_blocks
 
         self.this_exp.addLoop(self.trials)  # This allows logging at each iteration
+
+        dummy_conditions = []
+        training_trials = self.config["experiment"]["training_trials"]
+        for i in range(training_trials):
+            if self.config["experiment"]["fixed_dist_distractor"]:
+                colors, selected_index, distractor_diff = generate_stimulus_trial_two_rectangles(
+                    self.number_of_rectangles)
+            else:
+                colors = [random.random() for _ in range(self.number_of_rectangles)]
+                selected_index = random.randint(0, self.number_of_rectangles - 1)
+                distractor_diff = -1
+            dummy_conditions.append(
+                {'colors': colors, 'selected_index': selected_index, 'distractor_diff': distractor_diff,
+                 'difficulty': random.choices(['Easy', 'Difficult'],
+                                              weights=[
+                                                  easy_hard_balance,
+                                                  1 - easy_hard_balance],
+                                              k=1)[0],
+                 'angle_offset': np.random.uniform(0, 2 * np.pi)})
+
+        self.dummy_trials = data.TrialHandler(trialList=dummy_conditions, nReps=1, method='sequential')
 
         # Clock for precise timing
         self.trial_clock = core.Clock()
@@ -438,7 +481,10 @@ class ColorTask:
                     core.quit()
                 if 'space' in keys:
                     response_time = response_clock.getTime()
-                    return self.confidence_slider.getRating(), response_time
+                    if self.confidence_slider.getRating() is not None:
+                        return self.confidence_slider.getRating(), response_time
+                    else:
+                        return 1, response_time
 
             return None, None
 
@@ -456,14 +502,69 @@ class ColorTask:
         self.win.flip()
         keys = event.waitKeys(keyList=['s', 'escape'])
 
+    def _draw_draw_training(self, index):
+        self.training_img[index].draw()
+        self.win.flip()
+        keys = event.waitKeys(keyList=['space', 'escape'])
+
     def run(self):
 
         self._draw_instruction()
 
-        easy_hard_balance = self.config['experiment']['easy_hard_balance']
+        for dummy_index, trial in enumerate(self.dummy_trials):
+
+            self._draw_draw_training(0)
+
+            self.fixation.draw()
+            self.win.flip()
+            core.wait(self.fixation_delay)  # Present the stimulus for 2 seconds
+
+            # Step2
+            self.stimulus.draw(trial['colors'], angle_offset=0.0)
+            self.fixation.draw()
+            self.win.flip()
+            core.wait(self.stimulus_duration)
+
+            # Step3
+            self.stimulus.draw_mask()
+            self.fixation.draw()
+            self.win.flip()
+            core.wait(self.mask_duration)
+
+            # Step4
+            self.fixation.draw()
+            self.win.flip()
+            difficulty_condition = trial['difficulty']
+            if difficulty_condition == 'Easy':
+                core.wait(self.wm_duration_easy)  # Present the stimulus for 2 seconds
+
+            else:
+                core.wait(self.wm_duration_hard)
+
+            # Step5
+
+            # index = random.randint(0, self.number_of_rectangles - 1)
+            index = trial['selected_index']
+            position = self.stimulus.get_position(index)
+
+            # while not event.getKeys(keyList=["space", "escape"]):
+            # angle_offset = np.random.uniform(0, 2 * np.pi)
+            self._draw_draw_training(1)
+
+            angle_offset = trial['angle_offset']
+            _ = self.color_bar.get_feedback_color(position,
+                                                  angle_offset,
+                                                  timeout=self.config["experiment"][
+                                                      "response_timeout"])
+
+            # Step6
+
+            self._draw_draw_training(2)
+            _ = self.confident_response.get_confidence(timeout=self.config["experiment"][
+                "response_timeout"])
 
         # TODO Introduction to the task
-
+        response_acc = []
         for block in range(self.n_blocks):
 
             self.blocks[block].draw()
@@ -527,16 +628,23 @@ class ColorTask:
                 confidence, confidence_rt = self.confident_response.get_confidence(timeout=self.config["experiment"][
                     "response_timeout"])
 
+                error = hue_difference_signed(reference=trial['colors'][index], feedback=fb_color[0])
+                if abs(error) < 30:
+                    response_acc.append(1)
+                else:
+                    response_acc.append(0)
                 # Log data for the current trial
                 self.this_exp.addData('Stimulus', trial['colors'])
                 self.this_exp.addData('Selected Position', index)
                 self.this_exp.addData('Angle_offset', angle_offset)
+                self.this_exp.addData('Distractor Distance', round_to_nearest(hue_to_degrees(trial['distractor_diff'])))
                 self.this_exp.addData('Trial Start', self.trial_clock.getTime())
                 self.this_exp.addData('Feedback', fb_color)
                 self.this_exp.addData('Response Time', response_time)
                 self.this_exp.addData('Confidence', confidence)
                 self.this_exp.addData('Confidence Response Time', confidence_rt)
                 self.this_exp.addData('Difficulty', difficulty_condition)
+                self.this_exp.addData('Error', error)
                 self.this_exp.nextEntry()
 
             if (block + 1) == (self.n_blocks // 2):
@@ -545,6 +653,15 @@ class ColorTask:
         # Clean up
         # self.this_exp.saveAsWideText(self.filename + '.csv')
         # self.this_exp.saveAsPickle(self.filename)
+
+        accuracy = sum(response_acc) / len(response_acc)
+
+        text = f'Thanks for your attendance!\n Your accuracy: {accuracy * 100.0:.2f}%\nPress space to exit.'
+
+        end_message = visual.TextStim(win=self.win, text=text, height=0.1, pos=(0, 0), color='black')
+        end_message.draw()
+        self.win.flip()
+        event.waitKeys(keyList=['space', 'escape'])
         self.win.close()
         core.quit()
 

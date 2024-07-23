@@ -19,16 +19,17 @@ stimulus:
 
 experiment:
   name: 'color-discrimination'
+  training_trials: 3
   fixed_dist_distractor: True
   distinct_color_dist: 0.1
   easy_hard_balance: 0.5
-  n_blocks: 5
+  n_blocks: 1
   n_trials: 2
   fixation_wait_time: 0.5
   stimulus_duration: 0.05
   mask_duration: 0.2
   wm_duration_easy: 0.5
-  wm_duration_hard: 2.5
+  wm_duration_hard: 4.5
 
   response_timeout: 50
   fixation_size: 0.05
