@@ -71,17 +71,17 @@ class ColorTask:
         self.training_img = []
         self.training_img.append(visual.ImageStim(
             win=self.win,
-            image="Images/color_task/1.jpg",
+            image="Images/color_task/1.png",
             units="pix"
         ))
         self.training_img.append(visual.ImageStim(
             win=self.win,
-            image="Images/color_task/3.jpg",
+            image="Images/color_task/3.png",
             units="pix"
         ))
         self.training_img.append(visual.ImageStim(
             win=self.win,
-            image="Images/color_task/4.jpg",
+            image="Images/color_task/4.png",
             units="pix"
         ))
 
